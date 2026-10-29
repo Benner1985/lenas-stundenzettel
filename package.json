@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

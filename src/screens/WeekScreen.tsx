@@ -57,7 +57,7 @@ export function WeekScreen() {
       <Card className="p-4">
         <SectionLabel>Tage</SectionLabel>
         <ul className="mt-1 divide-y divide-line">
-          {week.days.filter((d) => isWeekday(d.date)).map((d) => (
+          {week.days.map((d) => (
             <li key={d.date} className="flex items-center justify-between py-2.5">
               <span className="font-medium">{shortDate(d.date)}</span>
               {d.totalHours === 0 ? (

@@ -17,7 +17,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState(1)
   const [pickFor, setPickFor] = useState<string | null>(null) // Eintrag-id, für den der Hut gewählt wird
-  const [alwaysAssign, setAlwaysAssign] = useState(true)
+  const [alwaysAssign, setAlwaysAssign] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const dayEntries = useMemo(
@@ -37,7 +37,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
       date,
       title: ev.title,
       hours: ev.hours,
-      blockId: s.confident ? s.blockId : s.blockId,
+      blockId: s.confident ? s.blockId : null,
       source: 'calendar',
       needsReview: !s.confident,
       start: ev.start,
@@ -53,7 +53,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
       date,
       title,
       hours,
-      blockId: s.blockId,
+      blockId: s.confident ? s.blockId : null,
       source: 'manual',
       needsReview: !s.confident,
     })

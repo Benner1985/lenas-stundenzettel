@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { BLOCKS } from '../data/blocks'
 import { shortDate } from '../lib/format'
+import type { Entry } from '../types'
 import { Card, BlockOption } from './ui'
 
 // Löst offene "Welcher Hut?"-Nachfragen – eine nach der anderen.
 // Wird dort eingeblendet, wo sie gebraucht wird (z. B. im Excel-Screen).
-export function OpenQuestions() {
+// `questions` kann eine eingegrenzte Liste sein (z. B. nur der Export-Zeitraum);
+// ohne Angabe werden alle offenen Fragen gelöst.
+export function OpenQuestions({ questions }: { questions?: Entry[] }) {
   const store = useStore()
-  const open = store.openQuestions
+  const open = questions ?? store.openQuestions
   const [idx, setIdx] = useState(0)
   const [always, setAlways] = useState(true)
 

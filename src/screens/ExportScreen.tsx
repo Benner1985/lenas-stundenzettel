@@ -19,7 +19,6 @@ import { OpenQuestions } from '../components/OpenQuestions'
 
 export function ExportScreen() {
   const store = useStore()
-  const openCount = store.openQuestions.length
   const [scope, setScope] = useState<PeriodScope>('month')
   const [anchor, setAnchor] = useState(() => new Date())
   const [from, setFrom] = useState('')
@@ -54,9 +53,11 @@ export function ExportScreen() {
       if (getBlock(e.blockId)?.isBioZ) bioZ += e.hours
       else oemr += e.hours
     }
-    const open = scoped.filter((e) => e.needsReview).length
-    return { days, total, bioZ, oemr, open }
+    return { days, total, bioZ, oemr }
   }, [scoped])
+
+  // offene Nachfragen NUR im gewählten Zeitraum (für Export relevant)
+  const scopedOpen = useMemo(() => scoped.filter((e) => e.needsReview), [scoped])
 
   async function handleDownload() {
     if (!template) {
@@ -166,13 +167,13 @@ export function ExportScreen() {
         </dl>
       </Card>
 
-      {/* Offene Nachfragen direkt hier klären */}
-      {openCount > 0 ? (
+      {/* Offene Nachfragen im Zeitraum direkt hier klären */}
+      {scopedOpen.length > 0 ? (
         <div className="space-y-2">
           <div className="rounded-xl bg-warn px-4 py-3 text-sm font-medium text-warn-ink">
-            Noch {openCount} Nachfrage(n) offen – jetzt klären:
+            Noch {scopedOpen.length} Nachfrage(n) offen – jetzt klären:
           </div>
-          <OpenQuestions />
+          <OpenQuestions questions={scopedOpen} />
         </div>
       ) : (
         <div className="rounded-xl bg-bioz/15 px-4 py-3 text-sm font-medium text-bioz-ink">
