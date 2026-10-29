@@ -2,16 +2,12 @@ import { useState } from 'react'
 import { BottomNav, type Tab } from './components/BottomNav'
 import { TodayScreen } from './screens/TodayScreen'
 import { WeekScreen } from './screens/WeekScreen'
-import { QuestionsScreen } from './screens/QuestionsScreen'
 import { ExportScreen } from './screens/ExportScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
-import { useStore } from './lib/store'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('heute')
   const [settings, setSettings] = useState(false)
-  const store = useStore()
-  const openCount = store.openQuestions.length
 
   function goTab(t: Tab) {
     setSettings(false)
@@ -64,17 +60,12 @@ export default function App() {
           <>
             {tab === 'heute' && <TodayScreen goToWeek={() => setTab('woche')} />}
             {tab === 'woche' && <WeekScreen />}
-            {tab === 'fragen' && <QuestionsScreen />}
-            {tab === 'excel' && <ExportScreen goToQuestions={() => setTab('fragen')} />}
+            {tab === 'excel' && <ExportScreen />}
           </>
         )}
       </main>
 
-      <BottomNav
-        active={tab}
-        onChange={goTab}
-        badge={{ fragen: openCount || undefined }}
-      />
+      <BottomNav active={tab} onChange={goTab} />
     </div>
   )
 }

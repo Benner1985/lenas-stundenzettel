@@ -17,6 +17,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState(1)
   const [pickFor, setPickFor] = useState<string | null>(null) // Eintrag-id, für den der Hut gewählt wird
+  const [alwaysAssign, setAlwaysAssign] = useState(true)
   const [saved, setSaved] = useState(false)
 
   const dayEntries = useMemo(
@@ -215,11 +216,22 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
                   key={b.id}
                   blockId={b.id}
                   onClick={() => {
+                    const entry = dayEntries.find((e) => e.id === pickFor)
+                    if (alwaysAssign && entry) store.addRule(entry.title, b.id)
                     store.updateEntry(pickFor, { blockId: b.id, needsReview: false })
                     setPickFor(null)
                   }}
                 />
               ))}
+              <label className="flex items-center gap-2 px-1 pt-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={alwaysAssign}
+                  onChange={(e) => setAlwaysAssign(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--color-brand)]"
+                />
+                Immer so zuordnen
+              </label>
             </div>
           )}
 

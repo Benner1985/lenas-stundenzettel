@@ -15,9 +15,11 @@ import {
 import { writeIntoWorkbook, downloadBlob } from '../lib/excel'
 import { loadTemplate, saveTemplate, type StoredFile } from '../lib/fileStore'
 import { Button, Card, SectionLabel } from '../components/ui'
+import { OpenQuestions } from '../components/OpenQuestions'
 
-export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
+export function ExportScreen() {
   const store = useStore()
+  const openCount = store.openQuestions.length
   const [scope, setScope] = useState<PeriodScope>('month')
   const [anchor, setAnchor] = useState(() => new Date())
   const [from, setFrom] = useState('')
@@ -164,15 +166,14 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
         </dl>
       </Card>
 
-      {/* Status der Fragen */}
-      {stats.open > 0 ? (
-        <button
-          onClick={goToQuestions}
-          className="flex w-full items-center justify-between rounded-xl bg-warn px-4 py-3 text-left text-sm font-medium text-warn-ink"
-        >
-          <span>Noch {stats.open} Frage(n) offen – erst klären?</span>
-          <span>›</span>
-        </button>
+      {/* Offene Nachfragen direkt hier klären */}
+      {openCount > 0 ? (
+        <div className="space-y-2">
+          <div className="rounded-xl bg-warn px-4 py-3 text-sm font-medium text-warn-ink">
+            Noch {openCount} Nachfrage(n) offen – jetzt klären:
+          </div>
+          <OpenQuestions />
+        </div>
       ) : (
         <div className="rounded-xl bg-bioz/15 px-4 py-3 text-sm font-medium text-bioz-ink">
           ✓ Alle Fragen beantwortet
