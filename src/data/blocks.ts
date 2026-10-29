@@ -35,7 +35,7 @@ export const BLOCKS: Block[] = [
     hint: 'AHV, Kisterl, Byodo, Barnhouse',
     color: '#b5741a',
     isBioZ: false,
-    keywords: ['ahv', 'kisterl', 'kisterl', 'byodo', 'barnhouse', 'bio-regional', 'bioregional'],
+    keywords: ['ahv', 'kisterl', 'byodo', 'barnhouse', 'bio-regional', 'bioregional'],
   },
   {
     id: 'Ö3',

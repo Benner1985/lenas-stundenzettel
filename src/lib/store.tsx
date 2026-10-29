@@ -6,8 +6,9 @@ import {
   useReducer,
   type ReactNode,
 } from 'react'
-import type { Entry, Rule } from '../types'
+import type { Entry, Rule, WeekGoal } from '../types'
 import { SEED_ENTRIES } from '../data/seed'
+import { DEFAULT_GOAL } from './week'
 import { learnRule, suggestBlock } from './rules'
 
 // Zentraler, einfacher Zustand der App. Alles liegt lokal im Browser
@@ -18,6 +19,7 @@ const STORAGE_KEY = 'lenas-stundenzettel.v1'
 interface State {
   entries: Entry[]
   rules: Rule[]
+  goal: WeekGoal
 }
 
 type Action =
@@ -25,13 +27,16 @@ type Action =
   | { type: 'updateEntry'; id: string; patch: Partial<Entry> }
   | { type: 'removeEntry'; id: string }
   | { type: 'answerQuestion'; id: string; blockId: string; always: boolean }
-  | { type: 'reset' }
+  | { type: 'setGoal'; goal: WeekGoal }
+  | { type: 'addRule'; keyword: string; blockId: string }
+  | { type: 'removeRule'; keyword: string }
+  | { type: 'clearEntries' }
 
 function uid(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-const INITIAL: State = { entries: SEED_ENTRIES, rules: [] }
+const INITIAL: State = { entries: SEED_ENTRIES, rules: [], goal: DEFAULT_GOAL }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -56,6 +61,7 @@ function reducer(state: State, action: Action): State {
         ? learnRule(state.rules, entry.title, action.blockId)
         : state.rules
       return {
+        ...state,
         rules,
         entries: state.entries.map((e) =>
           e.id === action.id
@@ -64,8 +70,17 @@ function reducer(state: State, action: Action): State {
         ),
       }
     }
-    case 'reset':
-      return INITIAL
+    case 'setGoal':
+      return { ...state, goal: action.goal }
+    case 'addRule':
+      return { ...state, rules: learnRule(state.rules, action.keyword, action.blockId) }
+    case 'removeRule':
+      return {
+        ...state,
+        rules: state.rules.filter((r) => r.keyword !== action.keyword.toLowerCase().trim()),
+      }
+    case 'clearEntries':
+      return { ...state, entries: [] }
     default:
       return state
   }
@@ -74,7 +89,15 @@ function reducer(state: State, action: Action): State {
 function load(): State {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as State
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<State>
+      // mit Vorgaben zusammenführen (ältere Stände kennen z. B. goal nicht)
+      return {
+        entries: parsed.entries ?? SEED_ENTRIES,
+        rules: parsed.rules ?? [],
+        goal: parsed.goal ?? DEFAULT_GOAL,
+      }
+    }
   } catch {
     // ignorieren – privater Modus o. Ä.
   }
@@ -86,7 +109,10 @@ interface StoreValue extends State {
   updateEntry: (id: string, patch: Partial<Entry>) => void
   removeEntry: (id: string) => void
   answerQuestion: (id: string, blockId: string, always: boolean) => void
-  reset: () => void
+  setGoal: (goal: WeekGoal) => void
+  addRule: (keyword: string, blockId: string) => void
+  removeRule: (keyword: string) => void
+  clearEntries: () => void
   /** Offene "Welcher Hut?"-Fragen, älteste zuerst. */
   openQuestions: Entry[]
   /** Automatik-Vorschlag für einen freien Text. */
@@ -118,7 +144,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeEntry: (id) => dispatch({ type: 'removeEntry', id }),
       answerQuestion: (id, blockId, always) =>
         dispatch({ type: 'answerQuestion', id, blockId, always }),
-      reset: () => dispatch({ type: 'reset' }),
+      setGoal: (goal) => dispatch({ type: 'setGoal', goal }),
+      addRule: (keyword, blockId) => dispatch({ type: 'addRule', keyword, blockId }),
+      removeRule: (keyword) => dispatch({ type: 'removeRule', keyword }),
+      clearEntries: () => dispatch({ type: 'clearEntries' }),
       suggest: (title) => suggestBlock(title, state.rules),
     }
   }, [state])

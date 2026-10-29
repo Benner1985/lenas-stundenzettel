@@ -183,11 +183,15 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
                   </button>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{e.title}</span>
-                    {e.needsReview && (
+                    {e.needsReview ? (
                       <span className="text-xs font-medium text-warn-ink">
                         Hut unklar – wird nachgefragt
                       </span>
-                    )}
+                    ) : block ? (
+                      <span className="text-xs text-ink-faint">
+                        {block.id} · {block.name}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-sm tabular-nums text-ink-soft">
                     {hoursLabel(e.hours)}

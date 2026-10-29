@@ -8,8 +8,8 @@ import { Bar, Card, SectionLabel } from '../components/ui'
 export function WeekScreen() {
   const store = useStore()
   const week = useMemo(
-    () => summarizeWeek(store.entries, DEMO_TODAY),
-    [store.entries],
+    () => summarizeWeek(store.entries, DEMO_TODAY, store.goal),
+    [store.entries, store.goal],
   )
 
   const bioZOpen = Math.max(0, week.goal.bioZHours - week.bioZHours)
