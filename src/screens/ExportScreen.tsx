@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { getBlock } from '../data/blocks'
-import { hours as fmtHours, monthName } from '../lib/format'
+import { hours as fmtHours, monthName, thisMonthPrefix } from '../lib/format'
 import { writeIntoWorkbook, downloadBlob } from '../lib/excel'
 import { Button, Card, SectionLabel } from '../components/ui'
 
@@ -15,8 +15,9 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Demo-Monat: Oktober 2026
-  const monthPrefix = '2026-10'
+  // aktueller Monat
+  const monthPrefix = thisMonthPrefix()
+  const monthDate = new Date()
 
   const scoped = useMemo(() => {
     return store.entries.filter((e) =>
@@ -69,7 +70,7 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
         <SectionLabel>Zeitraum</SectionLabel>
         <div className="mt-2 flex gap-2">
           <ScopeButton active={scope === 'month'} onClick={() => setScope('month')}>
-            {monthName(9)} 2026
+            {monthName(monthDate.getMonth())} {monthDate.getFullYear()}
           </ScopeButton>
           <ScopeButton active={scope === 'all'} onClick={() => setScope('all')}>
             Alles

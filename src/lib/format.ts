@@ -40,6 +40,16 @@ export function toISO(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+/** Heutiges Datum als ISO-String. */
+export function todayISO(): string {
+  return toISO(new Date())
+}
+
+/** Aktueller Monat als Präfix "YYYY-MM". */
+export function thisMonthPrefix(): string {
+  return todayISO().slice(0, 7)
+}
+
 /** "2026-10-27" -> "Di 27.10." */
 export function shortDate(iso: string): string {
   const d = parseISO(iso)

@@ -14,7 +14,8 @@ import { learnRule, suggestBlock } from './rules'
 // Zentraler, einfacher Zustand der App. Alles liegt lokal im Browser
 // (localStorage), damit der Prototyp ohne Server funktioniert.
 
-const STORAGE_KEY = 'lenas-stundenzettel.v1'
+// v2: leerer Start – alte Stände mit Beispiel-Daten (v1) werden verworfen
+const STORAGE_KEY = 'lenas-stundenzettel.v2'
 
 interface State {
   entries: Entry[]

@@ -1,14 +1,13 @@
 import { useMemo } from 'react'
 import { useStore } from '../lib/store'
-import { DEMO_TODAY } from '../data/seed'
 import { summarizeWeek } from '../lib/week'
-import { hours, hoursLabel, shortDate } from '../lib/format'
+import { hours, hoursLabel, shortDate, todayISO } from '../lib/format'
 import { Bar, Card, SectionLabel } from '../components/ui'
 
 export function WeekScreen() {
   const store = useStore()
   const week = useMemo(
-    () => summarizeWeek(store.entries, DEMO_TODAY, store.goal),
+    () => summarizeWeek(store.entries, todayISO(), store.goal),
     [store.entries, store.goal],
   )
 

@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
 import { getCalendarEvents, QUICK_ACTIVITIES } from '../data/mockCalendar'
-import { DEMO_TODAY } from '../data/seed'
 import { BLOCKS, getBlock } from '../data/blocks'
-import { longDate, hoursLabel, toISO, parseISO } from '../lib/format'
+import { longDate, hoursLabel, toISO, parseISO, todayISO } from '../lib/format'
 import { Button, Card, SectionLabel, BlockOption } from '../components/ui'
 
 function shiftDay(iso: string, delta: number): string {
@@ -14,7 +13,7 @@ function shiftDay(iso: string, delta: number): string {
 
 export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
   const store = useStore()
-  const [date, setDate] = useState(DEMO_TODAY)
+  const [date, setDate] = useState(todayISO())
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState(1)
   const [pickFor, setPickFor] = useState<string | null>(null) // Eintrag-id, für den der Hut gewählt wird
