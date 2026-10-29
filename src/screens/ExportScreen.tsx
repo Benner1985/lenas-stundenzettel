@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { getBlock } from '../data/blocks'
 import { hours as fmtHours, monthName, thisMonthPrefix } from '../lib/format'
 import { writeIntoWorkbook, downloadBlob } from '../lib/excel'
+import { loadTemplate, saveTemplate, type StoredFile } from '../lib/fileStore'
 import { Button, Card, SectionLabel } from '../components/ui'
 
 type Scope = 'month' | 'all'
@@ -10,10 +11,15 @@ type Scope = 'month' | 'all'
 export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
   const store = useStore()
   const [scope, setScope] = useState<Scope>('month')
-  const [file, setFile] = useState<{ name: string; data: ArrayBuffer } | null>(null)
+  // Vorlage ist lokal auf dem Gerät gespeichert – nur einmal auswählen.
+  const [template, setTemplate] = useState<StoredFile | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    loadTemplate().then(setTemplate)
+  }, [])
 
   // aktueller Monat
   const monthPrefix = thisMonthPrefix()
@@ -41,21 +47,29 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
   }, [scoped])
 
   async function handleDownload() {
-    if (!file) {
+    if (!template) {
       inputRef.current?.click()
       return
     }
     setBusy(true)
     setStatus(null)
     try {
-      const res = await writeIntoWorkbook(file.data, scoped)
-      downloadBlob(res.blob, file.name)
-      setStatus(`${res.written} Einträge ab Zeile ${res.startRow} eingetragen.`)
+      // Kopie der gespeicherten Vorlage füllen (Original bleibt unberührt)
+      const res = await writeIntoWorkbook(template.data.slice(0), scoped)
+      downloadBlob(res.blob, template.name)
+      setStatus(`${res.written} Einträge eingetragen. Datei heruntergeladen.`)
     } catch (err) {
       setStatus(`Fehler: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setBusy(false)
     }
+  }
+
+  async function pickFile(file: File) {
+    const data = await file.arrayBuffer()
+    await saveTemplate(file.name, data)
+    setTemplate({ name: file.name, data, savedAt: Date.now() })
+    setStatus(null)
   }
 
   return (
@@ -100,36 +114,56 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
         </div>
       )}
 
-      {/* Datei */}
+      {/* Vorlage (lokal auf dem Gerät gespeichert) */}
       <Card className="p-4">
-        <SectionLabel>Lenas Original-Datei</SectionLabel>
+        <SectionLabel>Excel-Vorlage</SectionLabel>
         <input
           ref={inputRef}
           type="file"
           accept=".xlsx"
           className="hidden"
-          onChange={async (e) => {
+          onChange={(e) => {
             const f = e.target.files?.[0]
-            if (!f) return
-            setFile({ name: f.name, data: await f.arrayBuffer() })
-            setStatus(null)
+            if (f) pickFile(f)
           }}
         />
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="min-w-0 truncate text-sm text-ink-soft">
-            {file ? file.name : 'Noch keine Datei gewählt'}
-          </span>
-          <button
-            onClick={() => inputRef.current?.click()}
-            className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-canvas"
-          >
-            {file ? 'Andere' : 'Datei wählen'}
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-ink-faint">
-          Die Einträge werden in diese Datei geschrieben, Summen bleiben
-          erhalten. Du bekommst dieselbe Datei aktualisiert zurück.
-        </p>
+        {template ? (
+          <>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">
+                  {template.name}
+                </span>
+                <span className="text-xs text-bioz-ink">
+                  ✓ auf diesem Gerät gespeichert
+                </span>
+              </span>
+              <button
+                onClick={() => inputRef.current?.click()}
+                className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:bg-canvas"
+              >
+                Ändern
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-ink-faint">
+              Die Einträge werden in diese Datei geschrieben (Summen bleiben
+              erhalten). Du musst sie nie wieder auswählen.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-ink-soft">
+              Wähle Lenas Excel einmalig aus. Sie wird nur auf diesem Gerät
+              gespeichert – nicht hochgeladen, nicht öffentlich.
+            </p>
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="mt-2 w-full rounded-xl border border-line px-4 py-3 text-sm font-semibold hover:bg-canvas"
+            >
+              Excel-Vorlage auswählen
+            </button>
+          </>
+        )}
       </Card>
 
       {status && (
@@ -137,7 +171,7 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
       )}
 
       <Button onClick={handleDownload} disabled={busy}>
-        {busy ? 'Schreibe …' : file ? 'Excel herunterladen' : 'Datei wählen & herunterladen'}
+        {busy ? 'Schreibe …' : template ? 'Excel herunterladen' : 'Vorlage wählen'}
       </Button>
     </div>
   )
