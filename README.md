@@ -24,7 +24,7 @@ offline.
 
 | Hut | Bedeutung | Spalten in der Excel |
 |-----|-----------|----------------------|
-| BZ  | BioZ / TW (hinten) | „BioSuL" (CA–CF) · *noch zu bestätigen* |
+| BZ  | BioZ / TW (hinten) | „BioSuL" (CA–CF) · Folgeprojekt von BioSuL |
 | Ö1  | Koordination | Block 1 (B–G) |
 | Ö2  | bio-regional | Block 2 (I–N) |
 | Ö3  | Wertschöpfung | Block 3 (P–U) |
@@ -55,9 +55,14 @@ hinzufügen:
 - **iPhone (Safari):** Teilen-Symbol → „Zum Home-Bildschirm"
 - **Android (Chrome):** Menü → „App installieren"
 
+## Veröffentlichung
+
+Wird per GitHub Actions automatisch auf **GitHub Pages** veröffentlicht
+(siehe `.github/workflows/deploy.yml`). Adresse nach dem ersten Deploy:
+`https://benner1985.github.io/lenas-stundenzettel/`
+
 ## Noch offen
 
-- BioZ/TW-Spalte final bestätigen (BioSuL vs. Block 8 „Land.belebt").
 - Excel-Schreiben mit Lenas echter Datei durchtesten (Uhrzeiten, Summenzeilen
-  je Zeitraum).
+  je Zeitraum – neue Einträge gehören in einen neuen Zeitraum-Abschnitt).
 - Echte Kalender-Anbindung statt Beispiel-Termine.

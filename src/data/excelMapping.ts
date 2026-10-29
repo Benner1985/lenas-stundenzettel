@@ -8,8 +8,9 @@
 //  - je Block 6 Spalten: Beginn, Ende, Stunden(=Ende−Beginn), Tagessatz, Verantw., Tätigkeit
 //  - Summenzeilen unten (u. a. Zeile 1155) mit SUM(...)-Formeln je Spalte
 //
-// WICHTIG: "BioZ / TW (hinten)" → BioSuL (CA–CF) ist noch mit Ben/Lena
-// zu bestätigen (Zeile 1160 "SUMME TW" = CC1155 spricht dafür).
+// "BioZ / TW (hinten)" → BioSuL (CA–CF). Von Lena bestätigt (29.10.2026):
+// BioZ ist das Folgeprojekt von BioSuL, wird aber weiterhin so genannt.
+// Passt zu Zeile 1160 "SUMME TW" = CC1155.
 
 export interface ColumnGroup {
   /** Spalte für Beginn (z. B. "B"). */
