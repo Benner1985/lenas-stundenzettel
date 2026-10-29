@@ -1,8 +1,8 @@
-// Einfacher Service Worker: App funktioniert auch offline.
-// Strategie: zuerst Cache zeigen, im Hintergrund aktualisieren.
-// Pfade relativ zum Scope des Service Workers (funktioniert auch im
-// Unterordner auf GitHub Pages).
-const CACHE = 'lenas-stundenzettel-v1'
+// Service Worker: Offline-Betrieb + schnelle Updates.
+// - Die Seite selbst (Navigation) wird zuerst aus dem Netz geladen, damit
+//   neue Versionen sofort ankommen; offline aus dem Zwischenspeicher.
+// - Übrige Dateien (mit Versions-Namen) zuerst aus dem Cache.
+const CACHE = 'lenas-stundenzettel-v2'
 const PRECACHE = ['./', './index.html', './manifest.webmanifest', './icon.svg']
 
 self.addEventListener('install', (event) => {
@@ -28,6 +28,21 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
   if (new URL(req.url).origin !== self.location.origin) return
 
+  // Navigation: zuerst Netzwerk (Updates sofort), offline -> Cache
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put('./', copy))
+          return res
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match('./'))),
+    )
+    return
+  }
+
+  // übrige Dateien: zuerst Cache, im Hintergrund aktualisieren
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)

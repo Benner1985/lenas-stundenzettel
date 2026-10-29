@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../lib/store'
 import { getBlock } from '../data/blocks'
-import { hours as fmtHours, monthName, thisMonthPrefix } from '../lib/format'
+import { hours as fmtHours } from '../lib/format'
+import {
+  type PeriodScope,
+  monthLabel,
+  quarterLabel,
+  inMonth,
+  inQuarter,
+  inCustom,
+  shiftMonth,
+  shiftQuarter,
+} from '../lib/period'
 import { writeIntoWorkbook, downloadBlob } from '../lib/excel'
 import { loadTemplate, saveTemplate, type StoredFile } from '../lib/fileStore'
 import { Button, Card, SectionLabel } from '../components/ui'
 
-type Scope = 'month' | 'all'
-
 export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
   const store = useStore()
-  const [scope, setScope] = useState<Scope>('month')
+  const [scope, setScope] = useState<PeriodScope>('month')
+  const [anchor, setAnchor] = useState(() => new Date())
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
   // Vorlage ist lokal auf dem Gerät gespeichert – nur einmal auswählen.
   const [template, setTemplate] = useState<StoredFile | null>(null)
   const [status, setStatus] = useState<string | null>(null)
@@ -21,15 +32,14 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
     loadTemplate().then(setTemplate)
   }, [])
 
-  // aktueller Monat
-  const monthPrefix = thisMonthPrefix()
-  const monthDate = new Date()
-
   const scoped = useMemo(() => {
-    return store.entries.filter((e) =>
-      scope === 'month' ? e.date.startsWith(monthPrefix) : true,
-    )
-  }, [store.entries, scope])
+    return store.entries.filter((e) => {
+      if (scope === 'all') return true
+      if (scope === 'month') return inMonth(e.date, anchor)
+      if (scope === 'quarter') return inQuarter(e.date, anchor)
+      return inCustom(e.date, from, to)
+    })
+  }, [store.entries, scope, anchor, from, to])
 
   const stats = useMemo(() => {
     const assigned = scoped.filter((e) => e.blockId && !e.needsReview)
@@ -82,14 +92,69 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
       {/* Zeitraum */}
       <Card className="p-4">
         <SectionLabel>Zeitraum</SectionLabel>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
           <ScopeButton active={scope === 'month'} onClick={() => setScope('month')}>
-            {monthName(monthDate.getMonth())} {monthDate.getFullYear()}
+            Monat
+          </ScopeButton>
+          <ScopeButton active={scope === 'quarter'} onClick={() => setScope('quarter')}>
+            Quartal
+          </ScopeButton>
+          <ScopeButton active={scope === 'custom'} onClick={() => setScope('custom')}>
+            Eigener
           </ScopeButton>
           <ScopeButton active={scope === 'all'} onClick={() => setScope('all')}>
             Alles
           </ScopeButton>
         </div>
+
+        {(scope === 'month' || scope === 'quarter') && (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-line px-1.5 py-1">
+            <button
+              onClick={() =>
+                setAnchor((a) => (scope === 'month' ? shiftMonth(a, -1) : shiftQuarter(a, -1)))
+              }
+              className="rounded-lg px-3 py-1.5 text-ink-faint hover:text-ink"
+              aria-label="zurück"
+            >
+              ‹
+            </button>
+            <span className="font-semibold">
+              {scope === 'month' ? monthLabel(anchor) : quarterLabel(anchor)}
+            </span>
+            <button
+              onClick={() =>
+                setAnchor((a) => (scope === 'month' ? shiftMonth(a, 1) : shiftQuarter(a, 1)))
+              }
+              className="rounded-lg px-3 py-1.5 text-ink-faint hover:text-ink"
+              aria-label="vor"
+            >
+              ›
+            </button>
+          </div>
+        )}
+
+        {scope === 'custom' && (
+          <div className="mt-3 flex items-end gap-2">
+            <label className="flex-1 text-sm text-ink-soft">
+              von
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2 outline-none focus:border-brand"
+              />
+            </label>
+            <label className="flex-1 text-sm text-ink-soft">
+              bis
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-line bg-paper px-2 py-2 outline-none focus:border-brand"
+              />
+            </label>
+          </div>
+        )}
 
         <dl className="mt-4 space-y-2.5">
           <Stat label="Arbeitstage" value={String(stats.days)} />
@@ -189,7 +254,7 @@ function ScopeButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+      className={`w-full rounded-xl px-1 py-2 text-sm font-semibold transition ${
         active ? 'bg-brand text-brand-ink' : 'bg-paper border border-line text-ink'
       }`}
     >
