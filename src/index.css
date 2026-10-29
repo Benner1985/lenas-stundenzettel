@@ -1,28 +1,31 @@
 @import 'tailwindcss';
 
 /* ------------------------------------------------------------------ *
- * Design-Tokens – angelehnt an die Konzeptskizze
- * (ruhiges Papierweiß, tiefes Blau für Aktionen, Grün für BioZ)
+ * Tagwerk-Branding
+ * Farben direkt aus dem Tagwerk-Erscheinungsbild:
+ *   Navy  #292662   ·   Oliv-Grün #a1a318   ·   Papier-Creme #f4eede
  * ------------------------------------------------------------------ */
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     Roboto, Helvetica, Arial, sans-serif;
 
-  --color-ink: #1a1a1a;
-  --color-ink-soft: #52525b;
-  --color-ink-faint: #9ca3af;
+  --color-ink: #211f2e;
+  --color-ink-soft: #57566a;
+  --color-ink-faint: #9b9aac;
 
   --color-paper: #ffffff;
-  --color-canvas: #f6f5f2; /* warmes Papierweiß des Hintergrunds */
-  --color-line: #e7e5e0;
+  --color-canvas: #f4eede; /* Tagwerk-Papier-Creme */
+  --color-line: #e7ddc9;
 
-  --color-brand: #1d4ed8; /* "Tag speichern" / "Excel herunterladen" */
+  --color-brand: #292662; /* Tagwerk-Navy – Buttons, Kopfzeile, aktive Navi */
   --color-brand-ink: #ffffff;
 
-  --color-total: #7c6fd6; /* Balken "Gesamt" */
-  --color-bioz: #16a34a; /* Balken "BioZ" / Grün-Akzent */
-  --color-warn: #f4e6cf; /* Hinweiskarten-Hintergrund */
-  --color-warn-ink: #92600a;
+  --color-total: #3f3a85; /* Balken "Gesamt" (helleres Navy) */
+  --color-bioz: #a1a318; /* Tagwerk-Oliv – BioZ-Balken/Flächen */
+  --color-bioz-ink: #6a6c0c; /* dunkleres Oliv für Text (Kontrast) */
+
+  --color-warn: #f1e3c4;
+  --color-warn-ink: #8a5a08;
 }
 
 html,
@@ -48,7 +51,6 @@ button {
   font-size: 16px;
 }
 
-/* dünne, dezente Scrollbar */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-line) transparent;

@@ -13,10 +13,20 @@ export default function App() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col bg-canvas">
-      <header className="sticky top-0 z-10 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur">
-        <h1 className="text-center text-sm font-semibold tracking-tight text-ink-soft">
-          Lenas Stundenzettel
-        </h1>
+      <header
+        className="sticky top-0 z-10 px-4 py-2 shadow-sm"
+        style={{ background: '#27205b' }}
+      >
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <img
+            src={`${import.meta.env.BASE_URL}tagwerk-logo.png`}
+            alt="Tagwerk – Unsere Bio Nachbarn"
+            className="h-10 w-auto"
+          />
+          <span className="text-sm font-semibold text-white/80">
+            Lenas Stundenzettel
+          </span>
+        </div>
       </header>
 
       <main className="flex-1 pb-2">

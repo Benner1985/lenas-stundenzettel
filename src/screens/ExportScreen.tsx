@@ -79,7 +79,7 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
         <dl className="mt-4 space-y-2.5">
           <Stat label="Arbeitstage" value={String(stats.days)} />
           <Stat label="Stunden gesamt" value={`${fmtHours(stats.total)} h`} />
-          <Stat label="BioZ / TW" value={`${fmtHours(stats.bioZ)} h`} accent="var(--color-bioz)" />
+          <Stat label="BioZ / TW" value={`${fmtHours(stats.bioZ)} h`} accent="var(--color-bioz-ink)" />
           <Stat label="ÖMR" value={`${fmtHours(stats.oemr)} h`} />
         </dl>
       </Card>
@@ -94,7 +94,7 @@ export function ExportScreen({ goToQuestions }: { goToQuestions: () => void }) {
           <span>›</span>
         </button>
       ) : (
-        <div className="rounded-xl bg-bioz/10 px-4 py-3 text-sm font-medium text-bioz">
+        <div className="rounded-xl bg-bioz/15 px-4 py-3 text-sm font-medium text-bioz-ink">
           ✓ Alle Fragen beantwortet
         </div>
       )}

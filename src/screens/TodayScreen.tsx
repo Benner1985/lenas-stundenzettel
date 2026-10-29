@@ -89,7 +89,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
       {/* Aus dem Kalender */}
       {calendar.length > 0 && (
         <Card className="p-4">
-          <SectionLabel>Aus deinem Kalender</SectionLabel>
+          <SectionLabel>Aus deinem Kalender (Beispiel)</SectionLabel>
           <div className="mt-2 space-y-2">
             {calendar.map((ev) => {
               const added = addedTitles.has(ev.title.toLowerCase())
@@ -108,7 +108,7 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
                     <span
                       className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
                         added
-                          ? 'border-bioz bg-bioz text-white'
+                          ? 'border-bioz-ink bg-bioz-ink text-white'
                           : 'border-ink-faint text-transparent'
                       }`}
                     >

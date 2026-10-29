@@ -3,8 +3,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-// base = Unterpfad auf GitHub Pages (https://<user>.github.io/lenas-stundenzettel/)
+// base = './' → relative Pfade, läuft unter jeder Adresse
+// (Vercel/Netlify im Hauptverzeichnis genauso wie in einem Unterordner).
 export default defineConfig({
-  base: '/lenas-stundenzettel/',
+  base: './',
   plugins: [react(), tailwindcss()],
 })

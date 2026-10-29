@@ -132,7 +132,7 @@ export function HoursPill({ hours, bioZ }: { hours: number; bioZ?: boolean }) {
   return (
     <span
       className={`inline-flex items-center rounded-lg px-2 py-0.5 text-sm font-semibold tabular-nums ${
-        bioZ ? 'text-bioz' : 'text-ink-soft'
+        bioZ ? 'text-bioz-ink' : 'text-ink-soft'
       }`}
     >
       {hoursLabel(hours)}

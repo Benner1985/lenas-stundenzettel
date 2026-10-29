@@ -65,7 +65,7 @@ export function WeekScreen() {
                 <span className="text-sm text-ink-faint">noch leer</span>
               ) : (
                 <span className="flex items-center gap-4 tabular-nums">
-                  <span className="inline-flex min-w-7 items-center justify-center rounded-lg bg-bioz/10 px-2 py-0.5 text-sm font-bold text-bioz">
+                  <span className="inline-flex min-w-7 items-center justify-center rounded-lg bg-bioz/15 px-2 py-0.5 text-sm font-bold text-bioz-ink">
                     {hours(d.bioZHours)}
                   </span>
                   <span className="min-w-12 text-right font-semibold">
