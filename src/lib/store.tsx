@@ -4,12 +4,15 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
+  useState,
   type ReactNode,
 } from 'react'
 import type { Entry, Rule, WeekGoal } from '../types'
 import { SEED_ENTRIES } from '../data/seed'
 import { DEFAULT_GOAL } from './week'
 import { learnRule, suggestBlock } from './rules'
+import { supabase, DOC_ID, TABLE } from './supabase'
 
 // Zentraler, einfacher Zustand der App. Alles liegt lokal im Browser
 // (localStorage), damit der Prototyp ohne Server funktioniert.
@@ -32,6 +35,7 @@ type Action =
   | { type: 'addRule'; keyword: string; blockId: string }
   | { type: 'removeRule'; keyword: string }
   | { type: 'clearEntries' }
+  | { type: 'hydrate'; data: Partial<State> }
 
 function uid(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -82,6 +86,13 @@ function reducer(state: State, action: Action): State {
       }
     case 'clearEntries':
       return { ...state, entries: [] }
+    case 'hydrate':
+      // Stand aus der Cloud übernehmen
+      return {
+        entries: action.data.entries ?? [],
+        rules: action.data.rules ?? [],
+        goal: action.data.goal ?? state.goal,
+      }
     default:
       return state
   }
@@ -124,7 +135,12 @@ const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, load)
+  // true, sobald der erste Stand aus der Cloud geladen wurde
+  const [ready, setReady] = useState(false)
+  // zuletzt mit der Cloud abgeglichener Stand (verhindert Echo-Schleifen)
+  const echoRef = useRef<string>('')
 
+  // Immer lokal sichern (Offline-Puffer)
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
@@ -132,6 +148,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Speichern nicht möglich – App läuft trotzdem weiter.
     }
   }, [state])
+
+  // 1) Beim Start: Stand aus der Cloud laden + auf Änderungen horchen
+  useEffect(() => {
+    let active = true
+    supabase
+      .from(TABLE)
+      .select('data')
+      .eq('id', DOC_ID)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active) return
+        if (data?.data) {
+          echoRef.current = JSON.stringify(data.data)
+          dispatch({ type: 'hydrate', data: data.data as Partial<State> })
+        }
+      })
+      .then(() => {
+        if (active) setReady(true)
+      })
+
+    const channel = supabase
+      .channel(`app_data_${DOC_ID}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: TABLE, filter: `id=eq.${DOC_ID}` },
+        (payload) => {
+          const remote = (payload.new as { data?: Partial<State> })?.data
+          if (!remote) return
+          const s = JSON.stringify(remote)
+          if (s === echoRef.current) return // eigene Änderung – ignorieren
+          echoRef.current = s
+          dispatch({ type: 'hydrate', data: remote })
+        },
+      )
+      .subscribe()
+
+    return () => {
+      active = false
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  // 2) Änderungen in die Cloud schreiben (erst nach dem ersten Laden)
+  useEffect(() => {
+    if (!ready) return
+    const payload = { entries: state.entries, rules: state.rules, goal: state.goal }
+    const s = JSON.stringify(payload)
+    if (s === echoRef.current) return // nichts Neues gegenüber dem letzten Sync
+    const timer = setTimeout(() => {
+      echoRef.current = s
+      supabase
+        .from(TABLE)
+        .upsert({ id: DOC_ID, data: payload, updated_at: new Date().toISOString() })
+        .then(({ error }) => {
+          // offline o. Ä. – der lokale Stand bleibt erhalten, der nächste
+          // Upsert schreibt den vollständigen Stand erneut
+          if (error) echoRef.current = ''
+        })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [state, ready])
 
   const value = useMemo<StoreValue>(() => {
     const openQuestions = state.entries
