@@ -174,10 +174,10 @@ export function ExportScreen() {
       {/* Desktop: Excel-Vorschau + einfacher Editor */}
       {isDesktop && (
         <div>
-          <SectionLabel>Vorschau – so kommt es in die Excel</SectionLabel>
+          <SectionLabel>Einträge bearbeiten</SectionLabel>
           <p className="mb-2 mt-1 text-sm text-ink-soft">
-            Hier kannst du prüfen und direkt bearbeiten: Hut ändern, Stunden/Tätigkeit
-            anpassen, löschen oder unten eine Zeile ergänzen.
+            Hut ändern, Stunden/Tätigkeit anpassen, löschen oder unten eine Zeile
+            ergänzen. Die echte Excel-Vorschau siehst du weiter unten.
           </p>
           <EntryTable entries={scoped} />
         </div>

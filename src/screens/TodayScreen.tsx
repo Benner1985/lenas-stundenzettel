@@ -4,6 +4,7 @@ import { getCalendarEvents, QUICK_ACTIVITIES } from '../data/mockCalendar'
 import { BLOCKS, getBlock } from '../data/blocks'
 import { longDate, hoursLabel, toISO, parseISO, todayISO } from '../lib/format'
 import { Button, Card, SectionLabel, BlockOption } from '../components/ui'
+import { useMediaQuery } from '../lib/useMediaQuery'
 
 function shiftDay(iso: string, delta: number): string {
   const d = parseISO(iso)
@@ -13,6 +14,7 @@ function shiftDay(iso: string, delta: number): string {
 
 export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
   const store = useStore()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [date, setDate] = useState(todayISO())
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState(1)
@@ -242,14 +244,16 @@ export function TodayScreen({ goToWeek }: { goToWeek: () => void }) {
         </Card>
       )}
 
-      <Button
-        onClick={() => {
-          setSaved(true)
-          goToWeek()
-        }}
-      >
-        {saved ? 'Tag gespeichert ✓' : 'Tag speichern'}
-      </Button>
+      {!isDesktop && (
+        <Button
+          onClick={() => {
+            setSaved(true)
+            goToWeek()
+          }}
+        >
+          {saved ? 'Tag gespeichert ✓' : 'Tag speichern'}
+        </Button>
+      )}
     </div>
   )
 }

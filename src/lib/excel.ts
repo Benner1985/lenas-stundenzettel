@@ -20,9 +20,9 @@ import { EXCEL_COLUMNS, EXCEL_SHEET, EXCEL_DATE_COLUMN } from '../data/excelMapp
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 const FIRST_DATA_ROW = 10
 
-function timeFraction(hhmm: string): number {
+function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
-  return (h + m / 60) / 24
+  return h * 60 + m
 }
 
 function colNum(letters: string): number {
@@ -87,27 +87,57 @@ export async function writeIntoWorkbook(
     ws.spliceRows(insertAt, 0, ...Array.from({ length: n }, () => []))
 
     // 3) Einträge in die neuen Zeilen schreiben
+    // Formatvorlage: eine echte Datenzeile (damit neue Zeilen wie der Rest aussehen)
+    const refRow = ws.getRow(lastData)
+    const copyStyle = (col: number, cell: ReturnType<typeof refRow.getCell>) => {
+      const src = refRow.getCell(col)
+      if (src && src.style) cell.style = { ...src.style }
+    }
+
     let row = insertAt
+    let curDate = ''
+    let cursorMin = 8 * 60 // fortlaufende Uhrzeit ab 08:00 je Tag
     for (const e of toWrite) {
       const cols = EXCEL_COLUMNS[e.blockId as string]
       const r = ws.getRow(row)
+      if (e.date !== curDate) {
+        curDate = e.date
+        cursorMin = 8 * 60
+      }
+      // Uhrzeiten: explizit (aus Kalender) oder fortlaufend (keine Überlappung)
+      let beginMin: number
+      let endMin: number
+      if (e.start && e.end) {
+        beginMin = toMinutes(e.start)
+        endMin = toMinutes(e.end)
+        cursorMin = Math.max(cursorMin, endMin)
+      } else {
+        beginMin = cursorMin
+        endMin = cursorMin + Math.round(e.hours * 60)
+        cursorMin = endMin
+      }
+
       const [y, mo, d] = e.date.split('-').map(Number)
       const dc = r.getCell(dateCol)
+      copyStyle(dateCol, dc)
       dc.value = new Date(y, mo - 1, d)
       dc.numFmt = 'dd.mm.yyyy'
 
-      const beginFrac = timeFraction(e.start ?? '08:00')
-      const endFrac = e.end ? timeFraction(e.end) : beginFrac + e.hours / 24
       const bc = r.getCell(colNum(cols.begin))
-      bc.value = beginFrac
+      copyStyle(colNum(cols.begin), bc)
+      bc.value = beginMin / 1440
       bc.numFmt = 'h:mm'
       const ec = r.getCell(colNum(cols.end))
-      ec.value = endFrac
+      copyStyle(colNum(cols.end), ec)
+      ec.value = endMin / 1440
       ec.numFmt = 'h:mm'
       const hc = r.getCell(colNum(cols.hours))
+      copyStyle(colNum(cols.hours), hc)
       hc.value = { formula: `${cols.end}${row}-${cols.begin}${row}` }
       hc.numFmt = 'h:mm'
-      r.getCell(colNum(cols.taetigkeit)).value = e.title
+      const tc = r.getCell(colNum(cols.taetigkeit))
+      copyStyle(colNum(cols.taetigkeit), tc)
+      tc.value = e.title
       row++
     }
 

@@ -24,6 +24,8 @@ interface State {
   entries: Entry[]
   rules: Rule[]
   goal: WeekGoal
+  /** IDs gelöschter Einträge (Tombstones) – verhindern „Auferstehen" beim Merge. */
+  deleted: string[]
 }
 
 type Action =
@@ -35,14 +37,13 @@ type Action =
   | { type: 'addRule'; keyword: string; blockId: string }
   | { type: 'removeRule'; keyword: string }
   | { type: 'clearEntries' }
-  | { type: 'hydrate'; data: Partial<State> }
   | { type: 'hydrateMerge'; data: Partial<State> }
 
 function uid(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-const INITIAL: State = { entries: SEED_ENTRIES, rules: [], goal: DEFAULT_GOAL }
+const INITIAL: State = { entries: SEED_ENTRIES, rules: [], goal: DEFAULT_GOAL, deleted: [] }
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -59,7 +60,11 @@ function reducer(state: State, action: Action): State {
       }
     }
     case 'removeEntry': {
-      return { ...state, entries: state.entries.filter((e) => e.id !== action.id) }
+      return {
+        ...state,
+        entries: state.entries.filter((e) => e.id !== action.id),
+        deleted: [...new Set([...state.deleted, action.id])],
+      }
     }
     case 'answerQuestion': {
       const entry = state.entries.find((e) => e.id === action.id)
@@ -86,24 +91,27 @@ function reducer(state: State, action: Action): State {
         rules: state.rules.filter((r) => r.keyword !== action.keyword.toLowerCase().trim()),
       }
     case 'clearEntries':
-      return { ...state, entries: [] }
-    case 'hydrate':
-      // Stand aus der Cloud übernehmen (Live-Update eines anderen Geräts)
+      // Alle aktuellen IDs als gelöscht merken, damit sie nicht wiederkommen
       return {
-        entries: action.data.entries ?? [],
-        rules: action.data.rules ?? [],
-        goal: action.data.goal ?? state.goal,
+        ...state,
+        entries: [],
+        deleted: [...new Set([...state.deleted, ...state.entries.map((e) => e.id)])],
       }
     case 'hydrateMerge': {
-      // Beim Start: lokalen Stand und Cloud ZUSAMMENFÜHREN (nichts geht verloren)
+      // Lokalen Stand und Cloud ZUSAMMENFÜHREN: nichts geht verloren, und
+      // gelöschte Einträge (Tombstones beider Seiten) tauchen nicht wieder auf.
+      const deleted = [...new Set([...state.deleted, ...(action.data.deleted ?? [])])]
+      const delSet = new Set(deleted)
       const byId = new Map(state.entries.map((e) => [e.id, e]))
       for (const e of action.data.entries ?? []) byId.set(e.id, e)
+      const entries = [...byId.values()].filter((e) => !delSet.has(e.id))
       const rmap = new Map(state.rules.map((r) => [r.keyword, r]))
       for (const r of action.data.rules ?? []) rmap.set(r.keyword, r)
       return {
-        entries: [...byId.values()],
+        entries,
         rules: [...rmap.values()],
         goal: action.data.goal ?? state.goal,
+        deleted,
       }
     }
     default:
@@ -121,6 +129,7 @@ function load(): State {
         entries: parsed.entries ?? SEED_ENTRIES,
         rules: parsed.rules ?? [],
         goal: parsed.goal ?? DEFAULT_GOAL,
+        deleted: parsed.deleted ?? [],
       }
     }
   } catch {
@@ -142,7 +151,11 @@ interface StoreValue extends State {
   openQuestions: Entry[]
   /** Automatik-Vorschlag für einen freien Text. */
   suggest: (title: string) => ReturnType<typeof suggestBlock>
+  /** Zustand der Cloud-Synchronisierung. */
+  syncStatus: SyncStatus
 }
+
+export type SyncStatus = 'synced' | 'syncing' | 'offline'
 
 const StoreContext = createContext<StoreValue | null>(null)
 
@@ -153,9 +166,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // zuletzt mit der Cloud abgeglichener Inhalt (verhindert Echo-Schleifen)
   const echoRef = useRef<string>('')
   // Kennung dieses Geräts/Tabs – um eigene Schreibvorgänge zu erkennen
-  const clientIdRef = useRef<string>(Math.random().toString(36).slice(2))
+  const clientIdRef = useRef<string>('')
+  if (!clientIdRef.current) clientIdRef.current = Math.random().toString(36).slice(2)
   // Echtzeit-Ereignisse erst nach dem ersten Laden/Zusammenführen zulassen
   const initialDoneRef = useRef(false)
+  // Sichtbarer Sync-Zustand
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('syncing')
 
   // Immer lokal sichern (Offline-Puffer)
   useEffect(() => {
@@ -167,8 +183,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state])
 
   // nur die inhaltlichen Felder vergleichen (ohne Geräte-Kennung)
-  function contentOf(d: { entries?: unknown; rules?: unknown; goal?: unknown }): string {
-    return JSON.stringify({ entries: d.entries, rules: d.rules, goal: d.goal })
+  function contentOf(d: {
+    entries?: unknown
+    rules?: unknown
+    goal?: unknown
+    deleted?: unknown
+  }): string {
+    return JSON.stringify({ entries: d.entries, rules: d.rules, goal: d.goal, deleted: d.deleted })
   }
 
   // 1) Beim Start: Stand aus der Cloud laden + auf Änderungen horchen
@@ -190,6 +211,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .then(() => {
         if (!active) return
         initialDoneRef.current = true
+        setSyncStatus('synced')
         setReady(true)
       })
 
@@ -206,7 +228,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const content = contentOf(remote)
           if (content === echoRef.current) return // inhaltlich nichts Neues
           echoRef.current = content
-          dispatch({ type: 'hydrate', data: remote as Partial<State> })
+          // auch Live-Updates zusammenführen (Tombstones beachten)
+          dispatch({ type: 'hydrateMerge', data: remote as Partial<State> })
         },
       )
       .subscribe()
@@ -222,6 +245,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!ready) return
     const content = contentOf(state)
     if (content === echoRef.current) return // nichts Neues gegenüber dem letzten Sync
+    setSyncStatus('syncing')
     const timer = setTimeout(() => {
       echoRef.current = content
       supabase
@@ -232,13 +256,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             entries: state.entries,
             rules: state.rules,
             goal: state.goal,
+            deleted: state.deleted,
             client: clientIdRef.current,
           },
           updated_at: new Date().toISOString(),
         })
         .then(({ error }) => {
-          // offline o. Ä. – lokaler Stand bleibt; nächster Upsert schreibt alles erneut
-          if (error) echoRef.current = ''
+          if (error) {
+            // offline o. Ä. – lokaler Stand bleibt; nächster Upsert schreibt alles erneut
+            echoRef.current = ''
+            setSyncStatus('offline')
+          } else {
+            setSyncStatus('synced')
+          }
         })
     }, 500)
     return () => clearTimeout(timer)
@@ -261,8 +291,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeRule: (keyword) => dispatch({ type: 'removeRule', keyword }),
       clearEntries: () => dispatch({ type: 'clearEntries' }),
       suggest: (title) => suggestBlock(title, state.rules),
+      syncStatus,
     }
-  }, [state])
+  }, [state, syncStatus])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

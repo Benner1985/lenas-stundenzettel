@@ -5,6 +5,8 @@ import { WeekScreen } from './screens/WeekScreen'
 import { ExportScreen } from './screens/ExportScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { useMediaQuery } from './lib/useMediaQuery'
+import { useStore } from './lib/store'
+import { SyncBadge } from './components/SyncBadge'
 
 const TAB_LABELS: Record<Tab, string> = { heute: 'Heute', woche: 'Woche', excel: 'Excel' }
 
@@ -12,6 +14,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('heute')
   const [settings, setSettings] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const { syncStatus } = useStore()
 
   function goTab(t: Tab) {
     setSettings(false)
@@ -49,10 +52,13 @@ export default function App() {
             ))}
           </nav>
 
+          <div className="ml-auto">
+            <SyncBadge status={syncStatus} />
+          </div>
           <button
             onClick={() => setSettings((s) => !s)}
             aria-label="Einstellungen"
-            className={`ml-auto shrink-0 rounded-lg p-1.5 transition hover:bg-white/10 ${
+            className={`shrink-0 rounded-lg p-1.5 transition hover:bg-white/10 ${
               settings ? 'text-white' : 'text-white/80'
             }`}
           >

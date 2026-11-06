@@ -1,14 +1,22 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
-import { summarizeWeek } from '../lib/week'
-import { hours, hoursLabel, shortDate, todayISO } from '../lib/format'
+import { summarizeWeek, sameWeek } from '../lib/week'
+import { hours, hoursLabel, shortDate, todayISO, parseISO, toISO } from '../lib/format'
 import { Bar, Card, SectionLabel } from '../components/ui'
+
+function shiftWeek(iso: string, deltaWeeks: number): string {
+  const d = parseISO(iso)
+  d.setDate(d.getDate() + deltaWeeks * 7)
+  return toISO(d)
+}
 
 export function WeekScreen() {
   const store = useStore()
+  const [ref, setRef] = useState(todayISO())
+  const isCurrentWeek = sameWeek(ref, todayISO())
   const week = useMemo(
-    () => summarizeWeek(store.entries, todayISO(), store.goal),
-    [store.entries, store.goal],
+    () => summarizeWeek(store.entries, ref, store.goal),
+    [store.entries, store.goal, ref],
   )
 
   const bioZOpen = Math.max(0, week.goal.bioZHours - week.bioZHours)
@@ -16,9 +24,33 @@ export function WeekScreen() {
 
   return (
     <div className="space-y-4 p-4">
-      <div className="text-center">
-        <SectionLabel>Diese Woche</SectionLabel>
-        <h1 className="text-xl font-bold">KW {week.week}</h1>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setRef((r) => shiftWeek(r, -1))}
+          className="rounded-lg px-2 py-1 text-ink-faint hover:text-ink"
+          aria-label="Woche zurück"
+        >
+          ‹
+        </button>
+        <div className="text-center">
+          <SectionLabel>{isCurrentWeek ? 'Diese Woche' : 'Woche'}</SectionLabel>
+          <h1 className="text-xl font-bold">KW {week.week}</h1>
+          {!isCurrentWeek && (
+            <button
+              onClick={() => setRef(todayISO())}
+              className="text-xs font-medium text-brand"
+            >
+              → zu dieser Woche
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setRef((r) => shiftWeek(r, 1))}
+          className="rounded-lg px-2 py-1 text-ink-faint hover:text-ink"
+          aria-label="Woche vor"
+        >
+          ›
+        </button>
       </div>
 
       {/* Ziel-Balken */}

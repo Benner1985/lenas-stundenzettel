@@ -73,13 +73,14 @@ export interface PreviewData {
   totals: Record<string, { old: number; neu: number; add: number }>
 }
 
-function addHours(hhmm: string, hours: number): string {
+function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
-  let total = h * 60 + m + Math.round(hours * 60)
-  total = ((total % 1440) + 1440) % 1440
-  const hh = Math.floor(total / 60)
-  const mm = total % 60
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+  return h * 60 + m
+}
+
+function fmtMinutes(total: number): string {
+  const t = ((total % 1440) + 1440) % 1440
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
 }
 
 /** Baut die Vorschau-Zeilen aus den Einträgen + der Vorlagen-Basis (ohne erneutes Parsen). */
@@ -88,14 +89,31 @@ export function buildPreviewRows(entries: Entry[], base: TemplateBase): PreviewD
     .filter((e) => e.blockId && !e.needsReview && EXCEL_COLUMNS[e.blockId])
     .sort((a, b) => a.date.localeCompare(b.date))
 
+  // gleiche Logik wie beim Schreiben: fortlaufende Uhrzeiten ab 08:00 je Tag
+  let curDate = ''
+  let cursor = 8 * 60
   const rows: PreviewRow[] = toWrite.map((e, i) => {
-    const begin = e.start ?? '08:00'
+    if (e.date !== curDate) {
+      curDate = e.date
+      cursor = 8 * 60
+    }
+    let bMin: number
+    let eMin: number
+    if (e.start && e.end) {
+      bMin = toMinutes(e.start)
+      eMin = toMinutes(e.end)
+      cursor = Math.max(cursor, eMin)
+    } else {
+      bMin = cursor
+      eMin = cursor + Math.round(e.hours * 60)
+      cursor = eMin
+    }
     return {
       excelRow: base.lastDataRow + 1 + i,
       date: e.date,
       blockId: e.blockId as string,
-      begin,
-      end: e.end ?? addHours(begin, e.hours),
+      begin: fmtMinutes(bMin),
+      end: fmtMinutes(eMin),
       hours: e.hours,
       title: e.title,
     }
