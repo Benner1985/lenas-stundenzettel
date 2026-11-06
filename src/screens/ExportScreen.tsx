@@ -16,9 +16,12 @@ import { writeIntoWorkbook, downloadBlob } from '../lib/excel'
 import { loadTemplate, saveTemplate, type StoredFile } from '../lib/fileStore'
 import { Button, Card, SectionLabel } from '../components/ui'
 import { OpenQuestions } from '../components/OpenQuestions'
+import { EntryTable } from '../components/EntryTable'
+import { useMediaQuery } from '../lib/useMediaQuery'
 
 export function ExportScreen() {
   const store = useStore()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [scope, setScope] = useState<PeriodScope>('month')
   const [anchor, setAnchor] = useState(() => new Date())
   const [from, setFrom] = useState('')
@@ -166,6 +169,18 @@ export function ExportScreen() {
           <Stat label="ÖMR" value={`${fmtHours(stats.oemr)} h`} />
         </dl>
       </Card>
+
+      {/* Desktop: Excel-Vorschau + einfacher Editor */}
+      {isDesktop && (
+        <div>
+          <SectionLabel>Vorschau – so kommt es in die Excel</SectionLabel>
+          <p className="mb-2 mt-1 text-sm text-ink-soft">
+            Hier kannst du prüfen und direkt bearbeiten: Hut ändern, Stunden/Tätigkeit
+            anpassen, löschen oder unten eine Zeile ergänzen.
+          </p>
+          <EntryTable entries={scoped} />
+        </div>
+      )}
 
       {/* Offene Nachfragen im Zeitraum direkt hier klären */}
       {scopedOpen.length > 0 ? (

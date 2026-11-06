@@ -36,6 +36,7 @@ type Action =
   | { type: 'removeRule'; keyword: string }
   | { type: 'clearEntries' }
   | { type: 'hydrate'; data: Partial<State> }
+  | { type: 'hydrateMerge'; data: Partial<State> }
 
 function uid(): string {
   return `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -87,12 +88,24 @@ function reducer(state: State, action: Action): State {
     case 'clearEntries':
       return { ...state, entries: [] }
     case 'hydrate':
-      // Stand aus der Cloud übernehmen
+      // Stand aus der Cloud übernehmen (Live-Update eines anderen Geräts)
       return {
         entries: action.data.entries ?? [],
         rules: action.data.rules ?? [],
         goal: action.data.goal ?? state.goal,
       }
+    case 'hydrateMerge': {
+      // Beim Start: lokalen Stand und Cloud ZUSAMMENFÜHREN (nichts geht verloren)
+      const byId = new Map(state.entries.map((e) => [e.id, e]))
+      for (const e of action.data.entries ?? []) byId.set(e.id, e)
+      const rmap = new Map(state.rules.map((r) => [r.keyword, r]))
+      for (const r of action.data.rules ?? []) rmap.set(r.keyword, r)
+      return {
+        entries: [...byId.values()],
+        rules: [...rmap.values()],
+        goal: action.data.goal ?? state.goal,
+      }
+    }
     default:
       return state
   }
@@ -137,8 +150,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, load)
   // true, sobald der erste Stand aus der Cloud geladen wurde
   const [ready, setReady] = useState(false)
-  // zuletzt mit der Cloud abgeglichener Stand (verhindert Echo-Schleifen)
+  // zuletzt mit der Cloud abgeglichener Inhalt (verhindert Echo-Schleifen)
   const echoRef = useRef<string>('')
+  // Kennung dieses Geräts/Tabs – um eigene Schreibvorgänge zu erkennen
+  const clientIdRef = useRef<string>(Math.random().toString(36).slice(2))
+  // Echtzeit-Ereignisse erst nach dem ersten Laden/Zusammenführen zulassen
+  const initialDoneRef = useRef(false)
 
   // Immer lokal sichern (Offline-Puffer)
   useEffect(() => {
@@ -148,6 +165,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Speichern nicht möglich – App läuft trotzdem weiter.
     }
   }, [state])
+
+  // nur die inhaltlichen Felder vergleichen (ohne Geräte-Kennung)
+  function contentOf(d: { entries?: unknown; rules?: unknown; goal?: unknown }): string {
+    return JSON.stringify({ entries: d.entries, rules: d.rules, goal: d.goal })
+  }
 
   // 1) Beim Start: Stand aus der Cloud laden + auf Änderungen horchen
   useEffect(() => {
@@ -160,12 +182,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (!active) return
         if (data?.data) {
-          echoRef.current = JSON.stringify(data.data)
-          dispatch({ type: 'hydrate', data: data.data as Partial<State> })
+          // Start: lokalen Stand mit der Cloud zusammenführen (kein Datenverlust)
+          echoRef.current = contentOf(data.data)
+          dispatch({ type: 'hydrateMerge', data: data.data as Partial<State> })
         }
       })
       .then(() => {
-        if (active) setReady(true)
+        if (!active) return
+        initialDoneRef.current = true
+        setReady(true)
       })
 
     const channel = supabase
@@ -174,12 +199,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         { event: '*', schema: 'public', table: TABLE, filter: `id=eq.${DOC_ID}` },
         (payload) => {
-          const remote = (payload.new as { data?: Partial<State> })?.data
+          if (!initialDoneRef.current) return // erst nach dem ersten Laden/Merge
+          const remote = (payload.new as { data?: Record<string, unknown> })?.data
           if (!remote) return
-          const s = JSON.stringify(remote)
-          if (s === echoRef.current) return // eigene Änderung – ignorieren
-          echoRef.current = s
-          dispatch({ type: 'hydrate', data: remote })
+          if (remote.client === clientIdRef.current) return // eigenes Echo
+          const content = contentOf(remote)
+          if (content === echoRef.current) return // inhaltlich nichts Neues
+          echoRef.current = content
+          dispatch({ type: 'hydrate', data: remote as Partial<State> })
         },
       )
       .subscribe()
@@ -193,17 +220,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // 2) Änderungen in die Cloud schreiben (erst nach dem ersten Laden)
   useEffect(() => {
     if (!ready) return
-    const payload = { entries: state.entries, rules: state.rules, goal: state.goal }
-    const s = JSON.stringify(payload)
-    if (s === echoRef.current) return // nichts Neues gegenüber dem letzten Sync
+    const content = contentOf(state)
+    if (content === echoRef.current) return // nichts Neues gegenüber dem letzten Sync
     const timer = setTimeout(() => {
-      echoRef.current = s
+      echoRef.current = content
       supabase
         .from(TABLE)
-        .upsert({ id: DOC_ID, data: payload, updated_at: new Date().toISOString() })
+        .upsert({
+          id: DOC_ID,
+          data: {
+            entries: state.entries,
+            rules: state.rules,
+            goal: state.goal,
+            client: clientIdRef.current,
+          },
+          updated_at: new Date().toISOString(),
+        })
         .then(({ error }) => {
-          // offline o. Ä. – der lokale Stand bleibt erhalten, der nächste
-          // Upsert schreibt den vollständigen Stand erneut
+          // offline o. Ä. – lokaler Stand bleibt; nächster Upsert schreibt alles erneut
           if (error) echoRef.current = ''
         })
     }, 500)
