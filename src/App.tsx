@@ -15,7 +15,7 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-canvas">
+    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-canvas md:border-x md:border-line md:shadow-sm">
       <header
         className="sticky top-0 z-10 px-4 py-2 shadow-sm"
         style={{ background: '#27205b' }}

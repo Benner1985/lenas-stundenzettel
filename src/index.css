@@ -43,6 +43,13 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Desktop: App als zentrierte Spalte auf ruhigem Hintergrund */
+@media (min-width: 768px) {
+  body {
+    background: #e6ddcb;
+  }
+}
+
 /* Verhindert, dass iOS beim Fokussieren von Inputs zoomt */
 input,
 select,
