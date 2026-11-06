@@ -17,6 +17,7 @@ import { loadTemplate, saveTemplate, type StoredFile } from '../lib/fileStore'
 import { Button, Card, SectionLabel } from '../components/ui'
 import { OpenQuestions } from '../components/OpenQuestions'
 import { EntryTable } from '../components/EntryTable'
+import { ExcelPreview } from '../components/ExcelPreview'
 import { useMediaQuery } from '../lib/useMediaQuery'
 
 export function ExportScreen() {
@@ -247,6 +248,18 @@ export function ExportScreen() {
           </>
         )}
       </Card>
+
+      {/* Echte Vorschau der Excel-Datei (Desktop, wenn Vorlage gewählt) */}
+      {isDesktop && template && (
+        <div>
+          <SectionLabel>Vorschau der Excel-Datei</SectionLabel>
+          <p className="mb-2 mt-1 text-sm text-ink-soft">
+            So sieht Lenas Excel nach dem Eintragen aus – echte Spalten, Uhrzeiten
+            und was zu den Summen dazukommt. Zur Kontrolle vor dem Download.
+          </p>
+          <ExcelPreview templateData={template.data} entries={scoped} />
+        </div>
+      )}
 
       {status && (
         <p className="rounded-xl bg-canvas px-4 py-3 text-sm">{status}</p>
