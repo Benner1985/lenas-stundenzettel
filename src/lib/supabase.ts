@@ -12,5 +12,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 })
 
 // Alle Daten liegen in einer Zeile (eine gemeinsame Ablage, kein Login).
-export const DOC_ID = 'lena'
+// Frische Ablage – die alte Zeile ("lena") enthielt nur Test-Daten und
+// wird bewusst nicht mehr verwendet.
+export const DOC_ID = 'lena-live'
 export const TABLE = 'app_data'
