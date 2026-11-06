@@ -17,8 +17,8 @@ import { supabase, DOC_ID, TABLE } from './supabase'
 // Zentraler, einfacher Zustand der App. Alles liegt lokal im Browser
 // (localStorage), damit der Prototyp ohne Server funktioniert.
 
-// v2: leerer Start – alte Stände mit Beispiel-Daten (v1) werden verworfen
-const STORAGE_KEY = 'lenas-stundenzettel.v2'
+// v3: sauberer Fresh Start – alte lokale Stände werden verworfen
+const STORAGE_KEY = 'lenas-stundenzettel.v3'
 
 interface State {
   entries: Entry[]
