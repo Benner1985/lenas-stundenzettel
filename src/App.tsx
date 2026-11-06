@@ -7,6 +7,7 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { useMediaQuery } from './lib/useMediaQuery'
 import { useStore } from './lib/store'
 import { SyncBadge } from './components/SyncBadge'
+import { MagicMoment } from './components/MagicMoment'
 
 const TAB_LABELS: Record<Tab, string> = { heute: 'Heute', woche: 'Woche', excel: 'Excel' }
 
@@ -55,6 +56,7 @@ export default function App() {
           <div className="ml-auto">
             <SyncBadge status={syncStatus} />
           </div>
+          <MagicMoment />
           <button
             onClick={() => setSettings((s) => !s)}
             aria-label="Einstellungen"
